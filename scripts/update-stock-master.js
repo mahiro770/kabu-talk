@@ -41,10 +41,17 @@ async function safeText(res) {
   }
 }
 
-function todayDateString() {
-  // J-Quants v2 の /equities/master は date パラメータ(YYYY-MM-DD)が必須。
-  // 当日時点で有効な最新の上場銘柄一覧を取得する。
-  return new Date().toISOString().slice(0, 10);
+// J-Quants Freeプランは常に「当日から約12週間(90日)前まで」のデータしか対象にならない
+// (実測:2026-09-12時点で「契約は2026-06-20まで」というエラーが返り、ちょうど約12週間前だった)。
+// 当日の日付を指定するとHTTP 400になるため、安全に収まる90日前の日付を指定する。
+// 銘柄マスタ(会社名・コード・市場区分)は数日〜数週間単位で頻繁には変わらないため、
+// 90日ずれていても実用上の問題はない(requirements.md 4-1章の遅延許容方針と同じ考え方)。
+const JQUANTS_FREE_PLAN_DELAY_DAYS = 90;
+
+function targetDateString() {
+  const d = new Date();
+  d.setDate(d.getDate() - JQUANTS_FREE_PLAN_DELAY_DAYS);
+  return d.toISOString().slice(0, 10);
 }
 
 /**
@@ -54,7 +61,7 @@ function todayDateString() {
 async function fetchListedInfo(apiKey) {
   const stocks = [];
   let paginationKey;
-  const date = todayDateString();
+  const date = targetDateString();
 
   do {
     const url = new URL(`${JQUANTS_BASE_URL}/equities/master`);
