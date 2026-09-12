@@ -50,24 +50,16 @@ service cloud.firestore {
           && request.resource.data.reportCount == 0
           && request.resource.data.hidden == false;
 
-        // 通報によるカウント更新（design.md 3-4章 想定案）
-        // reportCount/hiddenのみ変更可能、reportCountは1件ずつしか増やせない、
-        // hiddenはreportCount>=3と一致していること、対応するreports/{uid}が存在することを要求する。
+        // 通報によるカウント更新（design.md 3-4章）
+        // 【2026-09-12 統括リーダーによる修正】本番検証の結果、同一トランザクション内で直前に作成した
+        // reports/{uid} ドキュメントを exists() が正しく参照できず、通報が「送信に失敗しました」で
+        // 常に失敗する不具合を確認した。design.md 3-4章に申し送りされていたSIMPLE FALLBACK案に切り替える。
+        // reportCount/hiddenのみ変更可能、reportCountは1件ずつしか増やせないことのみを検証し、
+        // hiddenの整合性チェック・重複通報の検知はクライアント実装（utils/chat.jsのトランザクション、
+        // および reports/{uid} をドキュメントIDにした構造）と運用担当の事後監査に委ねる。
         allow update: if request.auth != null
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reportCount', 'hidden'])
-          && request.resource.data.reportCount == resource.data.reportCount + 1
-          && request.resource.data.hidden == (request.resource.data.reportCount >= 3)
-          && exists(/databases/$(database)/documents/posts/$(code)/messages/$(messageId)/reports/$(request.auth.uid));
-
-        // --- SIMPLE FALLBACK（emulatorで上記が意図通り動作しない場合の代替案。design.md 3-4章）---
-        // 上のallow updateブロックをコメントアウトし、代わりに以下を使う：
-        //
-        // allow update: if request.auth != null
-        //   && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reportCount', 'hidden'])
-        //   && request.resource.data.reportCount == resource.data.reportCount + 1;
-        //
-        // この場合、hiddenの整合性チェックとexists()による重複防止はクライアント実装（3-4章のトランザクション）
-        // と運用担当の事後監査に委ねる。
+          && request.resource.data.reportCount == resource.data.reportCount + 1;
 
         allow delete: if false; // 削除はGitHub Actionsバッチ（Admin SDK）のみが行う
 
