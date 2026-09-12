@@ -1,0 +1,38 @@
+.error-fallback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 12px;
+  padding: 48px 24px;
+  color: var(--color-text-sub);
+  flex: 1;
+}
+
+.error-fallback__icon {
+  font-size: 36px;
+  color: var(--color-warn-text);
+}
+
+.error-fallback__message {
+  margin: 0;
+  max-width: 320px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.error-fallback__retry {
+  margin-top: 4px;
+  padding: 10px 20px;
+  border-radius: 999px;
+  border: 1px solid var(--color-primary);
+  background: var(--color-surface);
+  color: var(--color-primary);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.error-fallback__retry:hover {
+  background: var(--color-primary-soft);
+}

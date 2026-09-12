@@ -1,0 +1,16 @@
+.app-footer {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 16px 12px 24px;
+  color: var(--color-text-faint);
+  font-size: 12px;
+  text-align: center;
+}
+
+.app-footer__link {
+  color: var(--color-text-sub);
+  text-decoration: underline;
+}

@@ -1,0 +1,29 @@
+name: Prune chat history
+
+# design.md 6-4章：チャット履歴の保持ポリシー適用バッチ。日次（毎日4:00 JST = 前日19:00 UTC）+ 手動実行可。
+on:
+  schedule:
+    - cron: '0 19 * * *' # 毎日 19:00 UTC = 毎日 4:00 JST
+  workflow_dispatch: {}
+
+jobs:
+  prune-chat-history:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: scripts
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run prune-chat-history
+        env:
+          FIREBASE_SERVICE_ACCOUNT_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
+        run: npm run prune-chat-history

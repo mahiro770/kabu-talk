@@ -1,0 +1,29 @@
+.disclaimer-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--color-warn-bg);
+  border: 1px solid var(--color-warn-border);
+  color: var(--color-warn-text);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  font-size: 13px;
+  text-decoration: none;
+  line-height: 1.4;
+}
+
+.disclaimer-banner--compact {
+  padding: 6px 12px;
+  font-size: 12px;
+  border-radius: 0;
+  border-left: none;
+  border-right: none;
+  border-top: none;
+  position: sticky;
+  top: 52px;
+  z-index: 15;
+}
+
+.disclaimer-banner__icon {
+  flex-shrink: 0;
+}

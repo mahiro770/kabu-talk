@@ -1,0 +1,31 @@
+name: Update stock master
+
+# design.md 5-2章：銘柄マスタ更新バッチ。週1回（毎週月曜 6:00 JST = 前日21:00 UTC）+ 手動実行可。
+on:
+  schedule:
+    - cron: '0 21 * * 0' # 毎週日曜 21:00 UTC = 毎週月曜 6:00 JST
+  workflow_dispatch: {}
+
+jobs:
+  update-stock-master:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: scripts
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run update-stock-master
+        env:
+          JQUANTS_MAIL_ADDRESS: ${{ secrets.JQUANTS_MAIL_ADDRESS }}
+          JQUANTS_PASSWORD: ${{ secrets.JQUANTS_PASSWORD }}
+          FIREBASE_SERVICE_ACCOUNT_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
+        run: npm run update-stock-master

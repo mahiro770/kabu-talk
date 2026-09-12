@@ -1,0 +1,108 @@
+:root {
+  color-scheme: light;
+
+  /* デザイントークン（独自配色。LINE/PayPay等のブランドカラーそのものは使用しない） */
+  --color-bg: #f4f6fb;
+  --color-surface: #ffffff;
+  --color-border: #e3e7f0;
+  --color-text: #1a1f36;
+  --color-text-sub: #6b7280;
+  --color-text-faint: #9aa1b1;
+
+  --color-primary: #4c5fd5;
+  --color-primary-dark: #3a49b0;
+  --color-primary-soft: #eef0fd;
+
+  --color-accent: #17b897;
+  --color-warn-bg: #fff4e0;
+  --color-warn-border: #f5c775;
+  --color-warn-text: #8a5a00;
+
+  --color-danger: #e2483d;
+  --color-danger-soft: #fdecea;
+
+  --bubble-mine-bg: #4c5fd5;
+  --bubble-mine-text: #ffffff;
+  --bubble-other-bg: #ffffff;
+  --bubble-other-text: #1a1f36;
+
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --shadow-card: 0 1px 3px rgba(26, 31, 54, 0.08), 0 1px 2px rgba(26, 31, 54, 0.06);
+
+  font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Hiragino Kaku Gothic ProN',
+    'Yu Gothic', 'Noto Sans JP', system-ui, sans-serif;
+  line-height: 1.5;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --color-bg: #12141c;
+    --color-surface: #1b1e2a;
+    --color-border: #2a2e3d;
+    --color-text: #eef0f7;
+    --color-text-sub: #a3aabf;
+    --color-text-faint: #6f7690;
+
+    --color-primary: #7c8cf0;
+    --color-primary-dark: #5f6fd9;
+    --color-primary-soft: #232748;
+
+    --color-accent: #2fd7ae;
+    --color-warn-bg: #3a2f14;
+    --color-warn-border: #8a6a1f;
+    --color-warn-text: #f3cd7e;
+
+    --color-danger: #f16d64;
+    --color-danger-soft: #3a1f1e;
+
+    --bubble-mine-bg: #5f6fd9;
+    --bubble-mine-text: #ffffff;
+    --bubble-other-bg: #262a3a;
+    --bubble-other-text: #eef0f7;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+button {
+  font-family: inherit;
+}
+
+a {
+  color: inherit;
+}
+
+input,
+textarea,
+button {
+  font-family: inherit;
+}
+
+.page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+

@@ -1,0 +1,109 @@
+.compose-bar-wrap {
+  position: sticky;
+  bottom: 0;
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  z-index: 20;
+}
+
+.compose-bar {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  padding: 10px 12px;
+}
+
+.compose-bar__input {
+  flex: 1;
+  resize: none;
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+  padding: 10px 14px;
+  font-size: 14px;
+  max-height: 96px;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.compose-bar__input:disabled {
+  color: var(--color-text-faint);
+  cursor: not-allowed;
+}
+
+.compose-bar__side {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.compose-bar__count {
+  font-size: 10px;
+  color: var(--color-text-faint);
+}
+
+.compose-bar__count--over {
+  color: var(--color-danger);
+}
+
+.compose-bar__submit {
+  border: none;
+  background: var(--color-primary);
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
+  padding: 9px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.compose-bar__submit:disabled {
+  background: var(--color-border);
+  color: var(--color-text-faint);
+  cursor: default;
+}
+
+.compose-bar__block-message {
+  margin: 8px 12px 0;
+  padding: 8px 12px;
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+}
+
+.compose-bar__warning {
+  margin: 8px 12px 0;
+  padding: 10px 12px;
+  background: var(--color-warn-bg);
+  border: 1px solid var(--color-warn-border);
+  color: var(--color-warn-text);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+}
+
+.compose-bar__warning p {
+  margin: 0 0 8px;
+}
+
+.compose-bar__warning-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.compose-bar__warning-actions button {
+  flex: 1;
+  padding: 8px;
+  border-radius: 999px;
+  border: 1px solid var(--color-warn-border);
+  background: transparent;
+  color: var(--color-warn-text);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.compose-bar__warning-confirm {
+  background: var(--color-warn-border);
+  color: #402d00;
+  font-weight: 700;
+}

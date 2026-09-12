@@ -1,0 +1,14 @@
+{
+  "name": "batch-scripts",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "GitHub Actionsのscheduled workflowから実行するバッチスクリプト群（design.md 5章・6-4章）。firebase-admin SDKを使うため、フロントエンド（app/package.json）とは依存関係を分離している。",
+  "scripts": {
+    "update-stock-master": "node update-stock-master.js",
+    "prune-chat-history": "node prune-chat-history.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.0.2"
+  }
+}

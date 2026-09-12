@@ -1,0 +1,43 @@
+.market-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  line-height: 1.6;
+}
+
+.market-badge--prime {
+  background: #eef0fd;
+  color: #4c5fd5;
+}
+
+.market-badge--standard {
+  background: #e6f7f2;
+  color: #17b897;
+}
+
+.market-badge--growth {
+  background: #fff1e6;
+  color: #d8791f;
+}
+
+.market-badge--default {
+  background: var(--color-border);
+  color: var(--color-text-sub);
+}
+
+@media (prefers-color-scheme: dark) {
+  .market-badge--prime {
+    background: #232748;
+    color: #a9b3ff;
+  }
+  .market-badge--standard {
+    background: #103a30;
+    color: #6fe3c4;
+  }
+  .market-badge--growth {
+    background: #3a2712;
+    color: #f0a86a;
+  }
+}
