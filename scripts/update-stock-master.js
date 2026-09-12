@@ -1,52 +1,36 @@
-// 銘柄マスタ更新バッチ（design.md 5章）
+// 銘柄マスタ更新バッチ(design.md 5章)
 //
-// 実行方法：GitHub Actions（.github/workflows/update-stock-master.yml）から週1回 or 手動実行される。
-// 処理内容：
-//   1. J-Quants APIにログインし、上場銘柄一覧を取得する
+// 実行方法:GitHub Actions(.github/workflows/update-stock-master.yml)から週1回 or 手動実行される。
+// 処理内容:
+//   1. J-Quants API(v2)にAPIキー認証でアクセスし、上場銘柄一覧を取得する
 //   2. 銘柄コードの重複を除去する
 //   3. 2,000件単位でチャンク分割し、stockMaster/chunk_0..N を丸ごと上書きする
 //   4. stockMaster/_meta の version を+1、updatedAt/chunkCount/totalCountを更新する
 //   5. いずれかの工程で失敗した場合はFirestoreを一切更新せず、前回成功時点のマスタを維持する
-//      （design.md 5-2章5番・8章8番）
+//      (design.md 5-2章5番・8章8番)
+//
+// 【2026-09-12 統括リーダーによる修正】
+// J-Quants APIは2025-12-22にv1からv2へ移行し、v1(メールアドレス/パスワード認証)は
+// 2026-06-01に完全廃止された。設計時点(v1)の実装ではHTTP 403エラーで失敗するため、
+// v2のAPIキー認証(x-api-keyヘッダー)・新エンドポイント(/v2/equities/master)に修正した。
+// 参考:https://jpx-jquants.com/en/spec/migration-v1-v2 、 https://jpx-jquants.com/en/spec/eq-master
 import { getFirestoreAdmin, admin } from './firebaseAdmin.js';
 
-const JQUANTS_BASE_URL = 'https://api.jquants.com/v1';
+const JQUANTS_BASE_URL = 'https://api.jquants.com/v2';
 const CHUNK_SIZE = 2000;
 
-// J-Quantsの市場区分名(MarketCodeName)は、フロントのMarketBadge.jsxが想定する
-// 「プライム/スタンダード/グロース」とほぼそのまま一致するため変換は行わない。
-// （TOKYO PRO MARKET等、3区分に当てはまらない値はMarketBadge側でデフォルト表示にフォールバックする）
+// J-Quants v2 の市場区分名(MktNm)は、フロントのMarketBadge.jsxが想定する
+// 「プライム/スタンダード/グロース」とほぼそのまま一致する想定で変換は行わない。
+// (TOKYO PRO MARKET等、3区分に当てはまらない値はMarketBadge側でデフォルト表示にフォールバックする)
 
-async function jquantsLogin() {
-  const mailaddress = process.env.JQUANTS_MAIL_ADDRESS;
-  const password = process.env.JQUANTS_PASSWORD;
-  if (!mailaddress || !password) {
+function getJquantsApiKey() {
+  const apiKey = process.env.JQUANTS_API_KEY;
+  if (!apiKey) {
     throw new Error(
-      'JQUANTS_MAIL_ADDRESS / JQUANTS_PASSWORD が設定されていません。GitHub SecretsにJ-Quantsアカウント情報を登録してください。'
+      'JQUANTS_API_KEY が設定されていません。J-Quantsダッシュボードの「API Keys」画面で発行し、GitHub Secretsに登録してください。'
     );
   }
-
-  const userRes = await fetch(`${JQUANTS_BASE_URL}/token/auth_user`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ mailaddress, password }),
-  });
-  if (!userRes.ok) {
-    throw new Error(`J-Quants auth_user 失敗: HTTP ${userRes.status} ${await safeText(userRes)}`);
-  }
-  const { refreshToken } = await userRes.json();
-  if (!refreshToken) throw new Error('J-Quants auth_user のレスポンスに refreshToken がありません。');
-
-  const refreshRes = await fetch(
-    `${JQUANTS_BASE_URL}/token/auth_refresh?refreshtoken=${encodeURIComponent(refreshToken)}`,
-    { method: 'POST' }
-  );
-  if (!refreshRes.ok) {
-    throw new Error(`J-Quants auth_refresh 失敗: HTTP ${refreshRes.status} ${await safeText(refreshRes)}`);
-  }
-  const { idToken } = await refreshRes.json();
-  if (!idToken) throw new Error('J-Quants auth_refresh のレスポンスに idToken がありません。');
-  return idToken;
+  return apiKey;
 }
 
 async function safeText(res) {
@@ -57,36 +41,44 @@ async function safeText(res) {
   }
 }
 
+function todayDateString() {
+  // J-Quants v2 の /equities/master は date パラメータ(YYYY-MM-DD)が必須。
+  // 当日時点で有効な最新の上場銘柄一覧を取得する。
+  return new Date().toISOString().slice(0, 10);
+}
+
 /**
- * 上場銘柄一覧を取得する。J-Quantsのlisted/infoはページングされる場合があるため、
- * pagination_key が返る限り取得を続ける。
+ * 上場銘柄一覧を取得する(J-Quants API v2: GET /equities/master?date=YYYY-MM-DD)。
+ * レスポンスは { data: [...], pagination_key } 形式。pagination_key が返る限り取得を続ける。
  */
-async function fetchListedInfo(idToken) {
+async function fetchListedInfo(apiKey) {
   const stocks = [];
   let paginationKey;
+  const date = todayDateString();
 
   do {
-    const url = new URL(`${JQUANTS_BASE_URL}/listed/info`);
+    const url = new URL(`${JQUANTS_BASE_URL}/equities/master`);
+    url.searchParams.set('date', date);
     if (paginationKey) url.searchParams.set('pagination_key', paginationKey);
 
     const res = await fetch(url, {
-      headers: { Authorization: `Bearer ${idToken}` },
+      headers: { 'x-api-key': apiKey },
     });
     if (!res.ok) {
-      throw new Error(`J-Quants listed/info 失敗: HTTP ${res.status} ${await safeText(res)}`);
+      throw new Error(`J-Quants equities/master 失敗: HTTP ${res.status} ${await safeText(res)}`);
     }
     const body = await res.json();
-    const info = Array.isArray(body.info) ? body.info : [];
-    for (const item of info) {
+    const data = Array.isArray(body.data) ? body.data : [];
+    for (const item of data) {
       if (!item.Code) continue;
       stocks.push({
         code: String(item.Code),
-        name: item.CompanyName ?? '',
-        // J-Quants listed/info にはふりがな(kana)フィールドが存在しないため空文字とする。
+        name: item.CoName ?? '',
+        // J-Quants v2 にもふりがな(kana)フィールドは存在しないため空文字とする。
         // 検索(utils/search.js)はnameKanaが空でも銘柄名の通常一致検索で動作する。
         nameKana: '',
-        market: item.MarketCodeName ?? '',
-        sector: item.Sector33CodeName ?? '',
+        market: item.MktNm ?? '',
+        sector: item.S33Nm ?? '',
       });
     }
     paginationKey = body.pagination_key;
@@ -98,7 +90,7 @@ async function fetchListedInfo(idToken) {
 function dedupeByCode(stocks) {
   const map = new Map();
   for (const s of stocks) {
-    map.set(s.code, s); // 後勝ち＝重複時は最後に出てきたレコードを採用（design.md 5-2章2番）
+    map.set(s.code, s); // 後勝ち=重複時は最後に出てきたレコードを採用(design.md 5-2章2番)
   }
   return Array.from(map.values());
 }
@@ -112,11 +104,11 @@ function chunkArray(arr, size) {
 }
 
 async function main() {
-  console.log('[update-stock-master] J-Quantsへのログインを開始します。');
-  const idToken = await jquantsLogin();
+  console.log('[update-stock-master] J-Quants APIキーを確認します。');
+  const apiKey = getJquantsApiKey();
 
   console.log('[update-stock-master] 上場銘柄一覧を取得します。');
-  const rawStocks = await fetchListedInfo(idToken);
+  const rawStocks = await fetchListedInfo(apiKey);
   if (rawStocks.length === 0) {
     throw new Error('J-Quantsから取得した銘柄数が0件でした。処理を中断し、Firestoreは更新しません。');
   }
@@ -133,7 +125,7 @@ async function main() {
   const nextVersion = (prevMeta?.version ?? 0) + 1;
 
   // Firestoreのバッチ書き込みは1回あたり最大500件。チャンク数+meta+削除分が
-  // それを超えることは実運用上ほぼ想定しない（東証約4,000銘柄/2,000件区切り=チャンク数はせいぜい数個）が、
+  // それを超えることは実運用上ほぼ想定しない(東証約4,000銘柄/2,000件区切り=チャンク数はせいぜい数個)が、
   // 念のため超過時は複数バッチに分割してcommitする。
   const writes = [];
   chunks.forEach((chunkStocks, i) => {
@@ -172,7 +164,7 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error('[update-stock-master] 失敗しました。Firestoreは更新されていません（前回成功時点のマスタを維持）。');
+  console.error('[update-stock-master] 失敗しました。Firestoreは更新されていません(前回成功時点のマスタを維持)。');
   console.error(err);
   process.exit(1);
 });
