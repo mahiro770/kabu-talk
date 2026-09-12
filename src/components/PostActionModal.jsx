@@ -19,6 +19,7 @@ export default function PostActionModal({ alreadyReported, onClose, onReport, on
       await onReport({ reason, comment });
       setStep('done');
     } catch (err) {
+      console.error('[handleReportSubmit]', err);
       if (err?.message === 'already-reported') {
         setSubmitError('この投稿にはすでに通報済みです。');
       } else {

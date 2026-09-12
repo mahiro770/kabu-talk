@@ -43,6 +43,7 @@ export default function StockChatPage() {
       setMessages(msgs);
       setCursor(nextCursor);
     } catch (err) {
+      console.error('[loadInitial]', err);
       setReadError(classifyFirebaseError(err, { operation: 'read' }));
     } finally {
       setLoadingMessages(false);
@@ -85,6 +86,7 @@ export default function StockChatPage() {
         ...prev,
       ]);
     } catch (err) {
+      console.error('[handlePostSubmit]', err);
       const kind = classifyFirebaseError(err, { operation: 'write' });
       setWriteErrorMessage(messageForErrorKind(kind));
     }
