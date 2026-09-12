@@ -39,7 +39,7 @@ export default function TopPage() {
 
   return (
     <div className="page top-page">
-      <Header title="カブトーク" />
+      <Header title="カブトーク" showSettings />
 
       <main className="top-page__main">
         <form className="top-page__search" onSubmit={handleSearchSubmit}>

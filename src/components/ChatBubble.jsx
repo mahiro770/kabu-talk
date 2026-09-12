@@ -5,10 +5,14 @@ import './ChatBubble.css';
 // LINE風チャット吹き出し（design.md 画面3）
 // 自分の投稿は右寄せ・アクセントカラー、他者の投稿は左寄せ・ニュートラルカラー
 export default function ChatBubble({ message, isMine, onOpenActions, alreadyReported }) {
+  // 【2026-09-12 追加】個人設定で表示名を設定している場合はその名前を、未設定の場合は
+  // 従来どおり「匿名」と表示する（design.mdの匿名性方針は維持しつつ、任意で名乗れるようにする）。
+  const displayName = message.authorName || '匿名';
   return (
     <div className={`chat-bubble-row${isMine ? ' chat-bubble-row--mine' : ''}`}>
-      {!isMine && <Avatar uid={message.anonId} />}
+      {!isMine && <Avatar uid={message.anonId} icon={message.authorIcon} />}
       <div className="chat-bubble-col">
+        <span className="chat-bubble__name">{displayName}</span>
         <div className={`chat-bubble${isMine ? ' chat-bubble--mine' : ''}`}>
           <p className="chat-bubble__text">{message.text}</p>
         </div>
@@ -25,7 +29,7 @@ export default function ChatBubble({ message, isMine, onOpenActions, alreadyRepo
           </button>
         </div>
       </div>
-      {isMine && <Avatar uid={message.anonId} />}
+      {isMine && <Avatar uid={message.anonId} icon={message.authorIcon} />}
     </div>
   );
 }

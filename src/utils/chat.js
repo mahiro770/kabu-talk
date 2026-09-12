@@ -48,7 +48,7 @@ export async function fetchMessages(code, cursor) {
  * 投稿を送信する（design.md 3-2章）。
  * バリデーション（空文字・文字数・NGワード）は呼び出し側（コンポーネント）で行う。
  */
-export async function postMessage({ code, name, uid, text }) {
+export async function postMessage({ code, name, uid, text, authorName, authorIcon }) {
   const postRef = doc(db, 'posts', code);
   const messagesRef = collection(db, 'posts', code, 'messages');
 
@@ -56,9 +56,15 @@ export async function postMessage({ code, name, uid, text }) {
   // 修正前は呼び出し側（StockChatPage）が楽観的更新で `local-${Date.now()}` という仮IDを
   // 表示に使っており、投稿直後（再読み込み前）にその投稿を通報しようとすると
   // Firestore上に存在しないIDを参照してしまい「message-not-found」で常に失敗する不具合があった。
+  //
+  // 【2026-09-12 追加】個人設定（表示名・アイコン）機能。投稿時点の設定を各投稿にそのまま
+  // 保存する（後から名前を変えても過去の投稿の表示は変わらない、という単純な仕様にする）。
+  // 未設定の場合は空文字/nullのままにし、表示側で従来の匿名アバターにフォールバックする。
   const newDocRef = await addDoc(messagesRef, {
     text,
     anonId: uid,
+    authorName: authorName || '',
+    authorIcon: authorIcon || '',
     createdAt: serverTimestamp(),
     reportCount: 0,
     hidden: false,

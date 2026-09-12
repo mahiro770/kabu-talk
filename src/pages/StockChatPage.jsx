@@ -14,6 +14,7 @@ import { getBlockedIds, blockAnonId } from '../utils/blockList';
 import { hasReported, markReported } from '../utils/reportedList';
 import { hasAgreedToTerms } from '../utils/terms';
 import { classifyFirebaseError, messageForErrorKind } from '../utils/errors';
+import { getProfile } from '../utils/profile';
 import './StockChatPage.css';
 
 export default function StockChatPage() {
@@ -79,11 +80,28 @@ export default function StockChatPage() {
     if (!uid) return;
     setWriteErrorMessage(null);
     try {
-      const newId = await postMessage({ code, name: stock?.name ?? code, uid, text });
+      const profile = getProfile();
+      const newId = await postMessage({
+        code,
+        name: stock?.name ?? code,
+        uid,
+        text,
+        authorName: profile.name,
+        authorIcon: profile.icon,
+      });
       // 送信直後は先頭に楽観的に追加する（再取得は行わず読み取り回数を節約）。
       // 通報・ブロック等で後から参照できるよう、Firestoreが実際に発行したIDを使う。
       setMessages((prev) => [
-        { id: newId, text, anonId: uid, createdAt: new Date(), reportCount: 0, hidden: false },
+        {
+          id: newId,
+          text,
+          anonId: uid,
+          authorName: profile.name,
+          authorIcon: profile.icon,
+          createdAt: new Date(),
+          reportCount: 0,
+          hidden: false,
+        },
         ...prev,
       ]);
     } catch (err) {

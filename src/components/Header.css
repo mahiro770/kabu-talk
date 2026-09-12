@@ -49,3 +49,19 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+.app-header__settings {
+  margin-left: auto;
+  border: none;
+  background: transparent;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--color-text);
+  padding: 8px;
+  cursor: pointer;
+  border-radius: 50%;
+}
+
+.app-header__settings:hover {
+  background: var(--color-primary-soft);
+}

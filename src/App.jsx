@@ -5,6 +5,7 @@ import TopPage from './pages/TopPage';
 import SearchResultsPage from './pages/SearchResultsPage';
 import StockChatPage from './pages/StockChatPage';
 import TermsPage from './pages/TermsPage';
+import SettingsPage from './pages/SettingsPage';
 import NotFoundPage from './pages/NotFoundPage';
 
 export default function App() {
@@ -17,6 +18,7 @@ export default function App() {
             <Route path="/search" element={<SearchResultsPage />} />
             <Route path="/stocks/:code" element={<StockChatPage />} />
             <Route path="/terms" element={<TermsPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </BrowserRouter>

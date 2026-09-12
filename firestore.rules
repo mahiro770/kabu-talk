@@ -42,13 +42,20 @@ service cloud.firestore {
         allow read: if true;
 
         // 投稿作成（design.md 3-2章）
+        // 【2026-09-12 追加】個人設定（表示名・アイコン）機能。authorName/authorIconは
+        // 任意項目（未設定なら空文字）。表示名は最大20文字、アイコンは絵文字1文字分の
+        // サイズ上限（サロゲートペア考慮で8文字分）までに制限し、悪用（過大な文字列の埋め込み）を防ぐ。
         allow create: if request.auth != null
           && request.resource.data.anonId == request.auth.uid
           && request.resource.data.text is string
           && request.resource.data.text.size() > 0
           && request.resource.data.text.size() <= 200
           && request.resource.data.reportCount == 0
-          && request.resource.data.hidden == false;
+          && request.resource.data.hidden == false
+          && request.resource.data.authorName is string
+          && request.resource.data.authorName.size() <= 20
+          && request.resource.data.authorIcon is string
+          && request.resource.data.authorIcon.size() <= 8;
 
         // 通報によるカウント更新（design.md 3-4章）
         // 【2026-09-12 統括リーダーによる修正】本番検証の結果、同一トランザクション内で直前に作成した

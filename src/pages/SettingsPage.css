@@ -1,0 +1,94 @@
+.settings-page__main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px 16px 32px;
+  max-width: 560px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.settings-page__note {
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--color-text-sub);
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+}
+
+.settings-page__form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.settings-page__label {
+  font-size: 13px;
+  color: var(--color-text-sub);
+  margin-top: 8px;
+}
+
+.settings-page__name-input {
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  font-size: 15px;
+  color: var(--color-text);
+}
+
+.settings-page__count {
+  align-self: flex-end;
+  font-size: 12px;
+  color: var(--color-text-sub);
+}
+
+.settings-page__icon-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+}
+
+.settings-page__icon-option {
+  aspect-ratio: 1;
+  font-size: 22px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.settings-page__icon-option--selected {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+}
+
+.settings-page__error {
+  font-size: 13px;
+  color: var(--color-danger);
+}
+
+.settings-page__saved {
+  font-size: 13px;
+  color: var(--color-primary-dark);
+}
+
+.settings-page__save {
+  margin-top: 8px;
+  padding: 12px;
+  border-radius: var(--radius-lg);
+  border: none;
+  background: var(--color-primary);
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.settings-page__save:hover {
+  background: var(--color-primary-dark);
+}
