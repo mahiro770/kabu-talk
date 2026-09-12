@@ -52,7 +52,11 @@ export async function postMessage({ code, name, uid, text }) {
   const postRef = doc(db, 'posts', code);
   const messagesRef = collection(db, 'posts', code, 'messages');
 
-  await addDoc(messagesRef, {
+  // 【2026-09-12 統括リーダーによる修正】戻り値のドキュメントIDを呼び出し側に返すようにした。
+  // 修正前は呼び出し側（StockChatPage）が楽観的更新で `local-${Date.now()}` という仮IDを
+  // 表示に使っており、投稿直後（再読み込み前）にその投稿を通報しようとすると
+  // Firestore上に存在しないIDを参照してしまい「message-not-found」で常に失敗する不具合があった。
+  const newDocRef = await addDoc(messagesRef, {
     text,
     anonId: uid,
     createdAt: serverTimestamp(),
@@ -80,6 +84,8 @@ export async function postMessage({ code, name, uid, text }) {
   } catch {
     // messageCountは目安表示用の非厳密な値のため、失敗は無視してよい（design.md 4-2章/6-4章）
   }
+
+  return newDocRef.id;
 }
 
 /**

@@ -79,10 +79,11 @@ export default function StockChatPage() {
     if (!uid) return;
     setWriteErrorMessage(null);
     try {
-      await postMessage({ code, name: stock?.name ?? code, uid, text });
-      // 送信直後は先頭に楽観的に追加する（再取得は行わず読み取り回数を節約）
+      const newId = await postMessage({ code, name: stock?.name ?? code, uid, text });
+      // 送信直後は先頭に楽観的に追加する（再取得は行わず読み取り回数を節約）。
+      // 通報・ブロック等で後から参照できるよう、Firestoreが実際に発行したIDを使う。
       setMessages((prev) => [
-        { id: `local-${Date.now()}`, text, anonId: uid, createdAt: new Date(), reportCount: 0, hidden: false },
+        { id: newId, text, anonId: uid, createdAt: new Date(), reportCount: 0, hidden: false },
         ...prev,
       ]);
     } catch (err) {
