@@ -9,12 +9,14 @@ import ErrorFallback from '../components/ErrorFallback';
 import Toast from '../components/Toast';
 import { useStockMaster, findStockByCode } from '../context/StockMasterContext';
 import { useAuthState } from '../context/AuthContext';
-import { fetchMessages, postMessage, submitReport } from '../utils/chat';
+import { fetchMessages, postMessage, submitReport, toggleLike } from '../utils/chat';
 import { getBlockedIds, blockAnonId } from '../utils/blockList';
 import { hasReported, markReported } from '../utils/reportedList';
+import { hasLiked, markLiked, unmarkLiked } from '../utils/likedList';
 import { hasAgreedToTerms } from '../utils/terms';
 import { classifyFirebaseError, messageForErrorKind } from '../utils/errors';
 import { getProfile } from '../utils/profile';
+import { recordPostAndGetStreak } from '../utils/streak';
 import './StockChatPage.css';
 
 export default function StockChatPage() {
@@ -81,6 +83,7 @@ export default function StockChatPage() {
     setWriteErrorMessage(null);
     try {
       const profile = getProfile();
+      const streak = recordPostAndGetStreak();
       const newId = await postMessage({
         code,
         name: stock?.name ?? code,
@@ -88,6 +91,7 @@ export default function StockChatPage() {
         text,
         authorName: profile.name,
         authorIcon: profile.icon,
+        streak,
       });
       // 送信直後は先頭に楽観的に追加する（再取得は行わず読み取り回数を節約）。
       // 通報・ブロック等で後から参照できるよう、Firestoreが実際に発行したIDを使う。
@@ -98,9 +102,11 @@ export default function StockChatPage() {
           anonId: uid,
           authorName: profile.name,
           authorIcon: profile.icon,
+          streak,
           createdAt: new Date(),
           reportCount: 0,
           hidden: false,
+          likeCount: 0,
         },
         ...prev,
       ]);
@@ -122,6 +128,43 @@ export default function StockChatPage() {
     await submitReport({ code, messageId: activeMessage.id, uid, reason, comment });
     markReported(code, activeMessage.id);
     setToast('通報を受け付けました');
+  }
+
+  async function handleToggleLike(message) {
+    if (!uid) return;
+    const wasLiked = hasLiked(code, message.id);
+    // 楽観的更新（通信を待たず即座に見た目を反映し、失敗時は元に戻す）
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.id === message.id
+          ? { ...m, likeCount: Math.max(0, (m.likeCount ?? 0) + (wasLiked ? -1 : 1)) }
+          : m
+      )
+    );
+    if (wasLiked) unmarkLiked(code, message.id);
+    else markLiked(code, message.id);
+
+    try {
+      const liked = await toggleLike({ code, messageId: message.id, uid });
+      if (liked !== !wasLiked) {
+        // サーバー側の実際の結果とローカル予測がずれた場合はローカル記録を補正する
+        if (liked) markLiked(code, message.id);
+        else unmarkLiked(code, message.id);
+      }
+    } catch (err) {
+      console.error('[handleToggleLike]', err);
+      // 失敗したので楽観的更新を巻き戻す
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === message.id
+            ? { ...m, likeCount: Math.max(0, (m.likeCount ?? 0) + (wasLiked ? 1 : -1)) }
+            : m
+        )
+      );
+      if (wasLiked) markLiked(code, message.id);
+      else unmarkLiked(code, message.id);
+      setToast('操作に失敗しました。しばらくしてから再度お試しください。');
+    }
   }
 
   const visibleMessages = messages.filter((m) => !blockedIds.includes(m.anonId));
@@ -174,7 +217,9 @@ export default function StockChatPage() {
                   message={m}
                   isMine={m.anonId === uid}
                   alreadyReported={hasReported(code, m.id)}
+                  liked={hasLiked(code, m.id)}
                   onOpenActions={setActiveMessage}
+                  onToggleLike={handleToggleLike}
                 />
               ))}
             </div>

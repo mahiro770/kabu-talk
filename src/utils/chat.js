@@ -48,7 +48,7 @@ export async function fetchMessages(code, cursor) {
  * 投稿を送信する（design.md 3-2章）。
  * バリデーション（空文字・文字数・NGワード）は呼び出し側（コンポーネント）で行う。
  */
-export async function postMessage({ code, name, uid, text, authorName, authorIcon }) {
+export async function postMessage({ code, name, uid, text, authorName, authorIcon, streak }) {
   const postRef = doc(db, 'posts', code);
   const messagesRef = collection(db, 'posts', code, 'messages');
 
@@ -60,6 +60,10 @@ export async function postMessage({ code, name, uid, text, authorName, authorIco
   // 【2026-09-12 追加】個人設定（表示名・アイコン）機能。投稿時点の設定を各投稿にそのまま
   // 保存する（後から名前を変えても過去の投稿の表示は変わらない、という単純な仕様にする）。
   // 未設定の場合は空文字/nullのままにし、表示側で従来の匿名アバターにフォールバックする。
+  //
+  // 【2026-09-13 追加】リアクション機能（likeCount）と連続投稿記録（streak）。
+  // streakはlocalStorage側（utils/streak.js）で計算した投稿時点の値をそのまま保存する
+  // （後から連続記録が途切れても、過去の投稿の表示は変わらない）。
   const newDocRef = await addDoc(messagesRef, {
     text,
     anonId: uid,
@@ -68,6 +72,8 @@ export async function postMessage({ code, name, uid, text, authorName, authorIco
     createdAt: serverTimestamp(),
     reportCount: 0,
     hidden: false,
+    likeCount: 0,
+    streak: streak || 0,
   });
 
   // サマリドキュメント（トップ画面の注目銘柄表示・監視用途、design.md 4-2章）。
@@ -124,5 +130,34 @@ export async function submitReport({ code, messageId, uid, reason, comment }) {
       reportCount: newCount,
       hidden: newCount >= REPORT_HIDE_THRESHOLD,
     });
+  });
+}
+
+/**
+ * いいねをトグルする（2026-09-13 追加：リアクション機能）。
+ * likes/{uid} をドキュメントIDにすることで1ユーザー1投稿につき1いいねまでを構造的に保証しつつ、
+ * 通報とは異なり削除も許可することで取り消し（トグルオフ）を可能にする。
+ * @returns {Promise<boolean>} トグル後の状態（true=いいね済み）
+ */
+export async function toggleLike({ code, messageId, uid }) {
+  const likeRef = doc(db, 'posts', code, 'messages', messageId, 'likes', uid);
+  const messageRef = doc(db, 'posts', code, 'messages', messageId);
+
+  return runTransaction(db, async (transaction) => {
+    const likeSnap = await transaction.get(likeRef);
+    const messageSnap = await transaction.get(messageRef);
+    if (!messageSnap.exists()) {
+      throw new Error('message-not-found');
+    }
+    const currentCount = messageSnap.data().likeCount ?? 0;
+
+    if (likeSnap.exists()) {
+      transaction.delete(likeRef);
+      transaction.update(messageRef, { likeCount: Math.max(0, currentCount - 1) });
+      return false;
+    }
+    transaction.set(likeRef, { createdAt: serverTimestamp() });
+    transaction.update(messageRef, { likeCount: currentCount + 1 });
+    return true;
   });
 }

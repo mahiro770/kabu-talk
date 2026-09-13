@@ -45,6 +45,9 @@ service cloud.firestore {
         // 【2026-09-12 追加】個人設定（表示名・アイコン）機能。authorName/authorIconは
         // 任意項目（未設定なら空文字）。表示名は最大20文字、アイコンは絵文字1文字分の
         // サイズ上限（サロゲートペア考慮で8文字分）までに制限し、悪用（過大な文字列の埋め込み）を防ぐ。
+        // 【2026-09-13 追加】リアクション機能（likeCount）・連続投稿記録（streak）。
+        // streakは投稿時点のクライアント算出値をそのまま信頼する（サーバー側での厳密な検証はしない。
+        // 見た目上の演出要素であり、悪用されても実害が小さいためコストゼロ原則を優先）。
         allow create: if request.auth != null
           && request.resource.data.anonId == request.auth.uid
           && request.resource.data.text is string
@@ -55,18 +58,32 @@ service cloud.firestore {
           && request.resource.data.authorName is string
           && request.resource.data.authorName.size() <= 20
           && request.resource.data.authorIcon is string
-          && request.resource.data.authorIcon.size() <= 8;
+          && request.resource.data.authorIcon.size() <= 8
+          && request.resource.data.likeCount == 0
+          && request.resource.data.streak is int;
 
-        // 通報によるカウント更新（design.md 3-4章）
+        // 通報によるカウント更新（design.md 3-4章）／いいねのトグル（2026-09-13追加）
         // 【2026-09-12 統括リーダーによる修正】本番検証の結果、同一トランザクション内で直前に作成した
         // reports/{uid} ドキュメントを exists() が正しく参照できず、通報が「送信に失敗しました」で
         // 常に失敗する不具合を確認した。design.md 3-4章に申し送りされていたSIMPLE FALLBACK案に切り替える。
         // reportCount/hiddenのみ変更可能、reportCountは1件ずつしか増やせないことのみを検証し、
         // hiddenの整合性チェック・重複通報の検知はクライアント実装（utils/chat.jsのトランザクション、
         // および reports/{uid} をドキュメントIDにした構造）と運用担当の事後監査に委ねる。
+        // いいねはlikeCountのみを±1する更新を許可する（likes/{uid}の作成・削除で重複防止）。
         allow update: if request.auth != null
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reportCount', 'hidden'])
-          && request.resource.data.reportCount == resource.data.reportCount + 1;
+          && (
+            (
+              request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reportCount', 'hidden'])
+              && request.resource.data.reportCount == resource.data.reportCount + 1
+            ) ||
+            (
+              request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likeCount'])
+              && (
+                request.resource.data.likeCount == resource.data.likeCount + 1 ||
+                request.resource.data.likeCount == resource.data.likeCount - 1
+              )
+            )
+          );
 
         allow delete: if false; // 削除はGitHub Actionsバッチ（Admin SDK）のみが行う
 
@@ -79,6 +96,16 @@ service cloud.firestore {
             && !exists(/databases/$(database)/documents/posts/$(code)/messages/$(messageId)/reports/$(reporterUid));
           allow read: if true;
           allow update, delete: if false;
+        }
+
+        // --- いいね（2026-09-13 追加）---
+        // ドキュメントID＝いいねしたuidにすることで1ユーザー1投稿につき1いいねまでを構造的に保証する。
+        // 通報とは異なり、いいねは取り消し（トグルオフ）できるようdeleteも本人にのみ許可する。
+        match /likes/{likerUid} {
+          allow create: if request.auth != null && request.auth.uid == likerUid;
+          allow delete: if request.auth != null && request.auth.uid == likerUid;
+          allow read: if true;
+          allow update: if false;
         }
       }
     }

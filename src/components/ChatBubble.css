@@ -24,6 +24,30 @@
   color: var(--color-text-faint);
   margin-bottom: 2px;
   padding: 0 2px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.chat-bubble__streak {
+  font-size: 11px;
+}
+
+.chat-bubble__like {
+  border: none;
+  background: transparent;
+  color: var(--color-text-faint);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 2px 4px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.chat-bubble__like--active {
+  color: var(--color-danger);
 }
 
 .chat-bubble {
